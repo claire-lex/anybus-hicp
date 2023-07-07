@@ -58,6 +58,7 @@ TO_MACFIELD = lambda x: x.replace("-", ":")
 # but also highly inconsistent in terms of message format, most of the
 # dissection and building process must be reworked for each message type.
 
+
 class HICPConfigure(Packet):
     name = "Configure request"
     fields_desc = [
@@ -65,7 +66,7 @@ class HICPConfigure(Packet):
         IPField("ip_address", "255.255.255.255"),
         IPField("subnet_mask", "255.255.255.0"),
         IPField("gateway_address", "0.0.0.0"),
-        StrField("dhcp", "OFF"), # ON or OFF
+        StrField("dhcp", "OFF"),  # ON or OFF
         StrField("hostname", ""),
         IPField("dns1", "0.0.0.0"),
         IPField("dns2", "0.0.0.0"),
@@ -97,6 +98,7 @@ class HICPConfigure(Packet):
                 field = [x for x, y in KEYS.items() if y == kv[0]][0]
                 setattr(self, field, kv[1])
 
+
 class HICPReconfigured(Packet):
     name = "Configure response"
     fields_desc = [
@@ -113,6 +115,7 @@ class HICPReconfigured(Packet):
         if res:
             self.source = TO_MACFIELD(res.group(1))
         return None
+
 
 class HICPWink(Packet):
     name = "Wink"
@@ -131,6 +134,7 @@ class HICPWink(Packet):
         if res:
             self.target = TO_MACFIELD(res.group(1))
 
+
 class HICPModuleScanResponse(Packet):
     name = "Module scan response"
     fields_desc = [
@@ -141,7 +145,7 @@ class HICPModuleScanResponse(Packet):
         IPField("ip_address", "255.255.255.255"),
         IPField("subnet_mask", "255.255.255.0"),
         IPField("gateway_address", "0.0.0.0"),
-        StrField("dhcp", "OFF"), # ON or OFF
+        StrField("dhcp", "OFF"),  # ON or OFF
         StrField("hostname", ""),
         IPField("dns1", "0.0.0.0"),
         IPField("dns2", "0.0.0.0"),
@@ -170,14 +174,24 @@ class HICPModuleScanResponse(Packet):
                     kv[1] = TO_MACFIELD(kv[1].decode('utf-8'))
                 setattr(self, field, kv[1])
 
+
 class HICPModuleScan(Packet):
     name = "Module scan request"
     fields_desc = [
+        StrField("hicp_command", CMD_MODULESCAN),
         ByteField("padding", 0)
     ]
 
-    def post_build(self, p, pay):
-        return CMD_MODULESCAN + p + pay
+    def do_dissect(self, s):
+        if len(s) > len(CMD_MODULESCAN):
+            self.hicp_command = s[:len(CMD_MODULESCAN)]
+            self.padding = s[len(CMD_MODULESCAN):]
+        else:
+            self.padding = RawVal(s)
+        
+    # def post_build(self, p, pay):
+    #     return CMD_MODULESCAN + p + pay
+
 
 class HICP(Packet):
     name = "HICP"
@@ -200,6 +214,7 @@ class HICP(Packet):
         if self.hicp_command != CMD_MODULESCAN:
             p = p[len(self.hicp_command):]
         return p + pay
+
 
 bind_bottom_up(UDP, HICP, dport=3250)
 bind_bottom_up(UDP, HICP, sport=3250)
