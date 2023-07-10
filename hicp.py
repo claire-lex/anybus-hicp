@@ -3,9 +3,6 @@
 # See https://scapy.net/ for more information
 # Copyright (C) 2023 - Claire VACHEROT <clairelex[at]pm.me>
 
-# scapy.contrib.name = HICP
-# scapy.contrib.description = HMS Anybus Host IP Control Protocol
-
 """HICP
 
 Support for HICP (Host IP Control Protocol).
@@ -19,10 +16,14 @@ device. Therefore, this implementation may differ from what is written in the
 standard.
 """
 
+# scapy.contrib.name = HICP
+# scapy.contrib.description = HMS Anybus Host IP Control Protocol
+# scapy.contrib.status = loads
+
 from re import match
 
 from scapy.packet import Packet, bind_layers, bind_bottom_up
-from scapy.fields import StrField, MACField, IPField, ByteField
+from scapy.fields import StrField, MACField, IPField, ByteField, RawVal
 from scapy.layers.inet import UDP
 
 # HICP command codes
@@ -100,7 +101,7 @@ class HICPConfigure(Packet):
 
 
 class HICPReconfigured(Packet):
-    name = "Configure response"
+    name = "Reconfigured"
     fields_desc = [
         MACField("source", "ff:ff:ff:ff:ff:ff")
     ]
@@ -188,9 +189,6 @@ class HICPModuleScan(Packet):
             self.padding = s[len(CMD_MODULESCAN):]
         else:
             self.padding = RawVal(s)
-        
-    # def post_build(self, p, pay):
-    #     return CMD_MODULESCAN + p + pay
 
 
 class HICP(Packet):
