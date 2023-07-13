@@ -120,11 +120,11 @@ class HICPReconfigured(Packet):
 
     def post_build(self, p, pay):
         p = "{0}: {1}".format(CMD_RECONFIGURED.decode('utf-8'),
-                               FROM_MACFIELD(self.source))
+                              FROM_MACFIELD(self.source))
         return p.encode('utf-8') + b"\x00" + pay
 
     def do_dissect(self, s):
-        res = match(".*: ([a-fA-F0-9\-\:]+)", s.decode('utf-8'))
+        res = match(r".*: ([a-fA-F0-9\-\:]+)", s.decode('utf-8'))
         if res:
             self.source = TO_MACFIELD(res.group(1))
         return None
@@ -138,11 +138,11 @@ class HICPInvalidConfiguration(Packet):
 
     def post_build(self, p, pay):
         p = "{0}: {1}".format(CMD_INVALIDCONF.decode('utf-8'),
-                               FROM_MACFIELD(self.source))
+                              FROM_MACFIELD(self.source))
         return p.encode('utf-8') + b"\x00" + pay
 
     def do_dissect(self, s):
-        res = match(".*: ([a-fA-F0-9\-\:]+)", s.decode('utf-8'))
+        res = match(r".*: ([a-fA-F0-9\-\:]+)", s.decode('utf-8'))
         if res:
             self.source = TO_MACFIELD(res.group(1))
         return None
@@ -156,11 +156,11 @@ class HICPInvalidPassword(Packet):
 
     def post_build(self, p, pay):
         p = "{0}: {1}".format(CMD_INVALIDPWD.decode('utf-8'),
-                               FROM_MACFIELD(self.source))
+                              FROM_MACFIELD(self.source))
         return p.encode('utf-8') + b"\x00" + pay
 
     def do_dissect(self, s):
-        res = match(".*: ([a-fA-F0-9\-\:]+)", s.decode('utf-8'))
+        res = match(r".*: ([a-fA-F0-9\-\:]+)", s.decode('utf-8'))
         if res:
             self.source = TO_MACFIELD(res.group(1))
         return None
