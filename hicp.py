@@ -32,6 +32,7 @@ CMD_MSRESPONSE = b"Module scan response"
 CMD_CONFIGURE = b"Configure"
 CMD_RECONFIGURED = b"Reconfigured"
 CMD_INVALIDCONF = b"Invalid Configuration"
+CMD_INVALIDPWD = b"Invalid Password"
 CMD_WINK = b"Wink"
 # These commands are implemented in the DLL but never seen in use
 CMD_START = b"Start"
@@ -43,6 +44,8 @@ KEYS = {
     "fieldbus_type": "FB type",
     "module_version": "Module version",
     "mac_address": "MAC",
+    "new_password": "New password",
+    "password": "PSWD",
     "ip_address": "IP",
     "subnet_mask": "SN",
     "gateway_address": "GW",
@@ -65,6 +68,8 @@ class HICPConfigure(Packet):
     name = "Configure request"
     fields_desc = [
         MACField("target", "ff:ff:ff:ff:ff:ff"),
+        StrField("password", ""),
+        StrField("new_password", ""),
         IPField("ip_address", "255.255.255.255"),
         IPField("subnet_mask", "255.255.255.0"),
         IPField("gateway_address", "0.0.0.0"),
@@ -83,7 +88,13 @@ class HICPConfigure(Packet):
                 value = getattr(self, field.name)
                 if isinstance(value, bytes):
                     value = value.decode('utf-8')
-                p.append("{0} = {1};".format(KEYS[field.name], value))
+                if field.name in ["password", "new_password"] and not value:
+                    continue
+                key = KEYS[field.name]
+                # The key for password is not the same as usual...
+                if field.name == "password":
+                    key = "Password"
+                p.append("{0} = {1};".format(key, value))
         return "".join(p).encode('utf-8') + b"\x00" + pay
 
     def do_dissect(self, s):
@@ -108,12 +119,12 @@ class HICPReconfigured(Packet):
     ]
 
     def post_build(self, p, pay):
-        p = "{0}: {1};".format(CMD_RECONFIGURED.decode('utf-8'),
+        p = "{0}: {1}".format(CMD_RECONFIGURED.decode('utf-8'),
                                FROM_MACFIELD(self.source))
         return p.encode('utf-8') + b"\x00" + pay
 
     def do_dissect(self, s):
-        res = match(".*: ([^;]+);", s.decode('utf-8'))
+        res = match(".*: ([a-fA-F0-9\-\:]+)", s.decode('utf-8'))
         if res:
             self.source = TO_MACFIELD(res.group(1))
         return None
@@ -126,12 +137,30 @@ class HICPInvalidConfiguration(Packet):
     ]
 
     def post_build(self, p, pay):
-        p = "{0}: {1};".format(CMD_INVALIDCONF.decode('utf-8'),
+        p = "{0}: {1}".format(CMD_INVALIDCONF.decode('utf-8'),
                                FROM_MACFIELD(self.source))
         return p.encode('utf-8') + b"\x00" + pay
 
     def do_dissect(self, s):
-        res = match(".*: ([^;]+);", s.decode('utf-8'))
+        res = match(".*: ([a-fA-F0-9\-\:]+)", s.decode('utf-8'))
+        if res:
+            self.source = TO_MACFIELD(res.group(1))
+        return None
+
+
+class HICPInvalidPassword(Packet):
+    name = "Invalid password"
+    fields_desc = [
+        MACField("source", "ff:ff:ff:ff:ff:ff")
+    ]
+
+    def post_build(self, p, pay):
+        p = "{0}: {1}".format(CMD_INVALIDPWD.decode('utf-8'),
+                               FROM_MACFIELD(self.source))
+        return p.encode('utf-8') + b"\x00" + pay
+
+    def do_dissect(self, s):
+        res = match(".*: ([a-fA-F0-9\-\:]+)", s.decode('utf-8'))
         if res:
             self.source = TO_MACFIELD(res.group(1))
         return None
@@ -166,6 +195,7 @@ class HICPModuleScanResponse(Packet):
         IPField("subnet_mask", "255.255.255.0"),
         IPField("gateway_address", "0.0.0.0"),
         StrField("dhcp", "OFF"),  # ON or OFF
+        StrField("password", "OFF"),  # ON or OFF
         StrField("hostname", ""),
         IPField("dns1", "0.0.0.0"),
         IPField("dns2", "0.0.0.0"),
@@ -221,7 +251,7 @@ class HICP(Packet):
 
     def do_dissect(self, s):
         for cmd in [CMD_MODULESCAN, CMD_CONFIGURE, CMD_RECONFIGURED,
-                    CMD_INVALIDCONF]:
+                    CMD_INVALIDCONF, CMD_INVALIDPWD]:
             if s[:len(cmd)] == cmd:
                 self.hicp_command = cmd
                 return s[len(cmd):]
@@ -240,8 +270,9 @@ bind_bottom_up(UDP, HICP, dport=3250)
 bind_bottom_up(UDP, HICP, sport=3250)
 bind_layers(UDP, HICP, sport=3250, dport=3250)
 bind_layers(HICP, HICPModuleScan, hicp_command=CMD_MODULESCAN)
+bind_layers(HICP, HICPModuleScanResponse, hicp_command=CMD_MSRESPONSE)
 bind_layers(HICP, HICPWink, hicp_command=CMD_WINK)
 bind_layers(HICP, HICPConfigure, hicp_command=CMD_CONFIGURE)
 bind_layers(HICP, HICPReconfigured, hicp_command=CMD_RECONFIGURED)
 bind_layers(HICP, HICPInvalidConfiguration, hicp_command=CMD_INVALIDCONF)
-bind_layers(HICP, HICPModuleScanResponse, hicp_command=CMD_MSRESPONSE)
+bind_layers(HICP, HICPInvalidPassword, hicp_command=CMD_INVALIDPWD)

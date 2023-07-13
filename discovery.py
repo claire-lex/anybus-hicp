@@ -23,6 +23,7 @@ for resp in responses:
     print("- MAC address:", resp.mac_address)
     print("- IP address:", resp.ip_address)
     print("- DHCP:", resp.dhcp.decode('utf-8'))
+    print("- Password:", resp.password.decode('utf-8'))
     print("- Subnet mask:", resp.subnet_mask)
     print("- Gateway address:", resp.gateway_address)
     print("- DNS 1:", resp.dns1)

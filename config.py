@@ -2,6 +2,7 @@
 # Script for HICP device configuration
 
 from sys import argv
+from getpass import getpass
 from socket import gaierror
 from scapy.compat import raw
 from scapy.layers.l2 import Ether
@@ -48,12 +49,19 @@ conf = HICPConfigure(
 setattr(conf, param, value) 
 
 # Send it and check response
-send(target/conf, verbose=False)
-resp = sniff(filter="port 3250", count=1)[0]
-if resp.hicp_command == b"Reconfigured":
-    print("Configuration successful: {0} = {1}.".format(param, value))
-elif resp.hicp_command == b"Invalid Configuration":
-    print("Configuration failed: {0} = {1}.".format(param, value))
-else:
-    print("Unknown response received.")
-
+while True:
+    send(target/conf, verbose=False)
+    resp = sniff(filter="port 3250", count=1)[0]
+    if resp.hicp_command == b"Reconfigured":
+        print("Configuration successful: {0} = {1}".format(param, value))
+        break
+    elif resp.hicp_command == b"Invalid Configuration":
+        print("Configuration failed: {0} = {1}".format(param, value))
+        break
+    elif resp.hicp_command == b"Invalid Password":
+        print("The device is password-protected.".format(param, value))
+        pwd = getpass("Please enter password: ")
+        conf.password = pwd
+    else:
+        print("Unknown response received.")
+        break
