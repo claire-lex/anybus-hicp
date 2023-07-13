@@ -31,6 +31,7 @@ CMD_MODULESCAN = b"Module scan"
 CMD_MSRESPONSE = b"Module scan response"
 CMD_CONFIGURE = b"Configure"
 CMD_RECONFIGURED = b"Reconfigured"
+CMD_INVALIDCONF = b"Invalid Configuration"
 CMD_WINK = b"Wink"
 # These commands are implemented in the DLL but never seen in use
 CMD_START = b"Start"
@@ -118,6 +119,24 @@ class HICPReconfigured(Packet):
         return None
 
 
+class HICPInvalidConfiguration(Packet):
+    name = "Invalid configuration"
+    fields_desc = [
+        MACField("source", "ff:ff:ff:ff:ff:ff")
+    ]
+
+    def post_build(self, p, pay):
+        p = "{0}: {1};".format(CMD_INVALIDCONF.decode('utf-8'),
+                               FROM_MACFIELD(self.source))
+        return p.encode('utf-8') + b"\x00" + pay
+
+    def do_dissect(self, s):
+        res = match(".*: ([^;]+);", s.decode('utf-8'))
+        if res:
+            self.source = TO_MACFIELD(res.group(1))
+        return None
+
+
 class HICPWink(Packet):
     name = "Wink"
     fields_desc = [
@@ -190,6 +209,9 @@ class HICPModuleScan(Packet):
         else:
             self.padding = RawVal(s)
 
+    def post_build(self, p, pay):
+        return p.upper() + pay
+
 
 class HICP(Packet):
     name = "HICP"
@@ -198,7 +220,8 @@ class HICP(Packet):
     ]
 
     def do_dissect(self, s):
-        for cmd in [CMD_MODULESCAN, CMD_CONFIGURE, CMD_RECONFIGURED]:
+        for cmd in [CMD_MODULESCAN, CMD_CONFIGURE, CMD_RECONFIGURED,
+                    CMD_INVALIDCONF]:
             if s[:len(cmd)] == cmd:
                 self.hicp_command = cmd
                 return s[len(cmd):]
@@ -209,8 +232,7 @@ class HICP(Packet):
         return s
 
     def post_build(self, p, pay):
-        if self.hicp_command != CMD_MODULESCAN:
-            p = p[len(self.hicp_command):]
+        p = p[len(self.hicp_command):]
         return p + pay
 
 
@@ -221,4 +243,5 @@ bind_layers(HICP, HICPModuleScan, hicp_command=CMD_MODULESCAN)
 bind_layers(HICP, HICPWink, hicp_command=CMD_WINK)
 bind_layers(HICP, HICPConfigure, hicp_command=CMD_CONFIGURE)
 bind_layers(HICP, HICPReconfigured, hicp_command=CMD_RECONFIGURED)
+bind_layers(HICP, HICPInvalidConfiguration, hicp_command=CMD_INVALIDCONF)
 bind_layers(HICP, HICPModuleScanResponse, hicp_command=CMD_MSRESPONSE)
