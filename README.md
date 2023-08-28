@@ -13,10 +13,18 @@ This repository contains useful stuff to talk to Anybus devices using HICP and w
 
 - `hicp_discovery.py`: Discover HICP devices on a network (broadcast)
 - `hicp_config.py`: Change the network configurations of a HICP device
-- `hich_bruteforce.py`: Bruteforce the password when it is enabled (requires a
+- `hicp_bruteforce.py`: Bruteforce the password when it is enabled (requires a
   wordlist)
 
 > Please note that Anybus devices usually broadcast everything: a device will
   probably reply to your messages (even direct messages) on address
   255.255.255.255.
+
+
+## Using Ethernet/IP (only for Anybus X-Gateway with Ethernet/IP support)
+
+- `enipTCP.py`: Ethernet/IP layer for Scapy (pushed to Scapy main)
+
+- `enip_discovery.py`: Discover Ethernet/IP devices (not only Anybus)
+
 
