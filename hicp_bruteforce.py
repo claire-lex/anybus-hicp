@@ -52,6 +52,7 @@ if resp.hicp_command != b"Invalid Password":
 # Now we read the dictionary file and send one request per line.
 with open(argv[2], 'r') as fd:
     for line in fd:
+        sleep(0.2) # Need time to process requests
         conf.password = line.strip()
         print("\rTesting: ", line.strip(), " " * 10, end="")
         send(target/conf, verbose=False)
